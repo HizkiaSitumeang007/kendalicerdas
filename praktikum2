@@ -1,4 +1,3 @@
-//wkkwkwkw
 #include <mega32.h>
 #include <alcd.h>
 #include <delay.h>
@@ -6,18 +5,34 @@
 #include <stdlib.h>
 #include <math.h>
 unsigned char dt,dtkey,arah;
-
-unsigned int a1,a2,a3,output;
-unsigned int b1,b2,b3,c1,c2,c3,d1,d2,d3;
+unsigned char a1,a2,a3,b1,b2,b3,c1,c2,c3,d1,d2,d3;
 int prev_error,integral,derivative,err;
 float kp,ki;
 unsigned char kd;
 char buf[33];
 unsigned char a,d,sp,edit;
-unsigned char c,a=5
-;
-unsigned char sp_1;
+unsigned char c,a=5;
+int data_rx;
+int vin;
+int sp_1,output;
 unsigned char pross;
+void cursor_on();
+void cursor_off();
+void detek_key(void);
+
+char cursor[4]={0,1,2,3};
+#define ADC_VREF_TYPE 0xE0 
+ // Read the AD conversion result
+unsigned int read_adc(unsigned char adc_input)
+{
+ADMUX=adc_input | (ADC_VREF_TYPE & 0xff) ;//& 0xdf ;
+// Start the AD conversion
+ADCSRA|=0x40;
+// Wait for the AD conversion to complete
+while ((ADCSRA & 0x10)==0);
+ADCSRA|=0x10;
+return ADCH;
+}
 eeprom unsigned char a11=0x00;
 eeprom unsigned char a21=0x01;
 eeprom unsigned char a31=0x02;
@@ -30,38 +45,26 @@ eeprom unsigned char c31=0x08;
 eeprom unsigned char d11=0x09;
 eeprom unsigned char d21=0x10;
 eeprom unsigned char d31=0x11;
- void detek_key(void);
-void cursor_on();
-void cursor_off(); 
-unsigned char cursor[4]={0,1,2,3};
- 
 void geser()
 { 
- if(sp==1){delay_ms(250);
-c++;if(
-c>3)
-c=3;arah=10;};
+ if(sp==1){delay_ms(250);c++;if(c>3)c=3;arah=10;};
 }
 void geser1()
 { 
-if(sp==1)
-{delay_ms(250);
-c--;if(
-c==255)
-c=0;arah=10;
-}
-;
+if(sp==1){delay_ms(250);c--;if(c==255)c=0;arah=10;};
 }
 void enter()
-{ 
-edit=1; }
+{
+ edit=1;
+}
 void set_sp()
-{ 
-if(sp==1) {
+{
+if(sp==1)
+{
 lcd_gotoxy(a,c);
-cursor_on();
-delay_ms(100)
 
+cursor_on();
+delay_ms(100);
 cursor_off();
 if((dtkey<=0x09)&&(edit==1)&&(sp==1)&&(c==0)){ a1=a2;delay_ms(70);a2=a3;
 delay_ms(70);a3=dtkey; a11=a1;a21=a2;a31=a3;dtkey=0x0A;}
@@ -75,7 +78,7 @@ delay_ms(70);d3=dtkey; d11=d1;d21=d2;d31=d3;dtkey=0x0A;}
 }
 void proses ()
 {
- pross=1; cursor_off();
+pross=1; cursor_off();
 do
 {
 a1=a11;a2=a21;a3=a31;
@@ -86,12 +89,24 @@ sp_1 = ((a1*100)+(a2*10)+(a3*1));
 kp=(float) ((b1*10)+(b2*1)+(b3*0.1));
 ki=(float) ((c1*1)+(c2*0.1)+(c3*0.01));
 kd= ((d1*100)+(d2*10)+(d3*1));
-output =(float)((kp*err)+(ki*integral)+(kd*derivative));
-} while(pross!=1);
-}
+err = (sp_1 - vin);
+if (((output>0)||(err>0))&&((output<255)||(err<0)))
+{Integral = Integral+err;} ; //antiwindup integral output<255)||(err<0)))
+Derivative =err - prev_error;
+output =(float) ((kp*err)+(ki*integral)+(kd*derivative));
+if (output>255)output=255;//antiwindup PID
+if (output<0)output=0;
+prev_error = err;
+if (sp_1>102){lcd_clear();output=0;lcd_gotoxy(0,0);
+lcd_putsf("error,SP_max=102 **tekan ENT**");delay_ms(1000);};
+if (sp_1<29) {output=0;lcd_clear();lcd_gotoxy(0,0);
+lcd_putsf("error,SP_min<PV **tekan ENT**");delay_ms(1000);};
+printf("\%d\ %d\n",sp_1,vin); 
+delay_ms(900);
+
+} while(pross==0); }
 void stop(void)
-{ pross=0;output=0;
-}
+{ pross=0;Integral=0; }
 void cursor_on()
 {
 _lcd_write_data(0xf);
@@ -100,18 +115,75 @@ void cursor_off()
 {
 _lcd_write_data(0xC);
 }
-void main() {
+void main()
+{
+// Declare your local variables here
+unsigned int data_rx;
 PORTA=0x00;
 DDRA=0x00;
 PORTB=0x0F;
 DDRB=0xF0;
-PORTC=0x00; DDRC=0x00;
+PORTC=0x00;
+DDRC=0x00;
 PORTD=0xFF;
 DDRD=0xF0;
+// USART initialization
+// Communication Parameters: 8 Data, 1 Stop, No Parity
+// USART Receiver: Off
+// USART Transmitter: On
+// USART Mode: Asynchronous
+// USART Baud rate: 9600
+UCSRA=0x00;
+UCSRB=0x18;
+UCSRC=0x86;
+UBRRH=0x00;
+UBRRL=0x19;//19
+// Timer/Counter 1 initialization
+// Clock source: System Clock
+// Clock value: 62,500 kHz
+// Mode: Fast PWM top=0x00FF
+// OC1A output: Inverted
+// OC1B output: Non-Inv.
+// Noise Canceler: Off
+// Input Capture on Falling Edge
+// Timer1 Overflow Interrupt: Off
+// Input Capture Interrupt: Off
+// Compare A Match Interrupt: Off
+// Compare B Match Interrupt: Off
+TCCR1A=0xE1;
+TCCR1B=0x0B;
+TCNT1H=0x00;
+TCNT1L=0x00;
+ICR1H=0x00;
+ICR1L=0x00;
+OCR1AH=0x00;
+OCR1AL=0x00;
+OCR1BH=0x00;
+OCR1BL=0x00;
+/*// External Interrupt(s) initialization
+// INT0: On
+// INT0 Mode: Low level
+// INT1: Off
+// INT2: Off
+GICR|=0x40;
+MCUCR=0x00;
+MCUCSR=0x00;
+GIFR=0x40;*/
+// Timer(s)/Counter(s) Interrupt(s) initialization
+TIMSK=0x00; 
+// ADC initialization
+// ADC Clock frequency: 125,000 kHz
+// ADC Voltage Reference: Int., cap. on AREF
+// ADC Auto Trigger Source: Free Running
+// Only the 8 most significant bits of
+// the AD conversion result are used
+ADMUX=ADC_VREF_TYPE & 0xff;
+ADCSRA=0xA5;
+SFIOR&=0x1F;
 /// LCD module initialization
 lcd_init(16);
 lcd_gotoxy(0,0);
-lcd_putsf(" ==PID EEPROM==");
+lcd_putsf(" ==PID SUHU==");
 delay_ms(500);
 lcd_gotoxy(0,1);
 lcd_putsf(" KONTROL CERDAS");
@@ -119,19 +191,20 @@ delay_ms(500);
 lcd_gotoxy(0,2);
 lcd_putsf(" ==STTW==");
 delay_ms(1000);
-stop();
 lcd_clear();
+stop();
 dtkey=0x0A;
 #asm ("cli")
 while (1)
 { 
+vin=read_adc(0);
 detek_key();
-switch (arah)
-{
-case 10: 
-{sp=1;set_sp();};
+OCR1A=output;
+OCR1B=output;
+switch (arah) {
+case 10: {sp=1;set_sp();};
 break;
-case 11: stop();
+case 11: {output=0;pross=0;stop();integral=0;};
 break;
 case 12: geser();
 break;
@@ -139,15 +212,14 @@ case 13: geser1();
 break;
 case 14: enter();
 break;
-case 15: {sp=0;edit=0;pross=1;proses();};
+case 15: {sp=0;proses();};
 break;
 };
-
 lcd_gotoxy(0,0);
 sprintf(buf,"SP=%d%d%d Out=%3d",a11,a21,a31,output); 
 lcd_puts(buf);
 lcd_gotoxy(0,1);
-sprintf(buf,"KP=%d%d.%d ",b11,b21,b31); 
+sprintf(buf,"KP=%d%d.%d Tp=%3d\xdfC",b11,b21,b31,vin); 
 lcd_puts(buf);
 lcd_gotoxy(0,2);
 sprintf(buf,"KI=%d.%d%d ",c11,c21,c31); 
@@ -155,12 +227,15 @@ lcd_puts(buf);
 lcd_gotoxy(0,3);
 sprintf(buf,"KD=%d%d%d ",d11,d21,d31); 
 lcd_puts(buf); 
-};}
+};
+}
 //fungsi scan keypad..............................................
-void detek_key(void) {
+void detek_key(void)
+{
 PORTB.4=0;
 dt=(~PINB & 0x0F);
-switch (dt) {
+switch (dt)
+{
 case 1: dtkey=0x01;break; 
 case 2: dtkey=0x02;break;
 case 4: dtkey=0x03;break;
@@ -175,8 +250,7 @@ switch (dt) {
 case 1: dtkey=0x04;break; 
 case 2: dtkey=0x05;break;
 case 4: dtkey=0x06;break;
-case 8: arah=11; break; //
-STOP… tombol stop
+case 8: arah=11; break; //STOP… tombol stop
 };
 PORTB.5=1; PORTB.6=0;
 dt=(~PINB & 0x0F);
@@ -194,7 +268,7 @@ switch (dt) {
 case 1: arah=15; break; //RUN untuk proses 
 case 2: dtkey=0x00;break;
 case 4: arah=14; break; //= … masukan nilai set_point
-case 8: arah=13; break; //< …cursor geser keatas
+case 8: arah=13; break; //
+< …cursor geser keatas
 };
-PORTB.7=1;
-};
+PORTB.7=1; };
