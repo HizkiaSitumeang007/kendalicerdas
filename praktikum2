@@ -1,0 +1,199 @@
+#include <mega32.h>
+#include <alcd.h>
+#include <delay.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+unsigned char dt,dtkey,arah;
+
+unsigned int a1,a2,a3,output;
+unsigned int b1,b2,b3,c1,c2,c3,d1,d2,d3;
+int prev_error,integral,derivative,err;
+float kp,ki;
+unsigned char kd;
+char buf[33];
+unsigned char a,d,sp,edit;
+unsigned char c,a=5
+;
+unsigned char sp_1;
+unsigned char pross;
+eeprom unsigned char a11=0x00;
+eeprom unsigned char a21=0x01;
+eeprom unsigned char a31=0x02;
+eeprom unsigned char b11=0x03;
+eeprom unsigned char b21=0x04;
+eeprom unsigned char b31=0x05;
+eeprom unsigned char c11=0x06;
+eeprom unsigned char c21=0x07;
+eeprom unsigned char c31=0x08;
+eeprom unsigned char d11=0x09;
+eeprom unsigned char d21=0x10;
+eeprom unsigned char d31=0x11;
+ void detek_key(void);
+void cursor_on();
+void cursor_off(); 
+unsigned char cursor[4]={0,1,2,3};
+ 
+void geser()
+{ 
+ if(sp==1){delay_ms(250);
+c++;if(
+c>3)
+c=3;arah=10;};
+}
+void geser1()
+{ 
+if(sp==1)
+{delay_ms(250);
+c--;if(
+c==255)
+c=0;arah=10;
+}
+;
+}
+void enter()
+{ 
+edit=1; }
+void set_sp()
+{ 
+if(sp==1) {
+lcd_gotoxy(a,c);
+cursor_on();
+delay_ms(100)
+
+cursor_off();
+if((dtkey<=0x09)&&(edit==1)&&(sp==1)&&(c==0)){ a1=a2;delay_ms(70);a2=a3;
+delay_ms(70);a3=dtkey; a11=a1;a21=a2;a31=a3;dtkey=0x0A;}
+if((dtkey<=0x09)&&(sp==1)&&(c==1)){ b1=b2;delay_ms(70);b2=b3;
+delay_ms(70);b3=dtkey; b11=b1;b21=b2;b31=b3;dtkey=0x0A;}
+if((dtkey<=0x09)&&(sp==1)&&(c==2)){ c1=c2;delay_ms(70);c2=c3;
+delay_ms(70);c3=dtkey; c11=c1;c21=c2;c31=c3;dtkey=0x0A;}
+if((dtkey<=0x09) &&(sp==1)&&(c==3)){ d1=d2;delay_ms(70);d2=d3;
+delay_ms(70);d3=dtkey; d11=d1;d21=d2;d31=d3;dtkey=0x0A;}
+}
+}
+void proses ()
+{
+ pross=1; cursor_off();
+do
+{
+a1=a11;a2=a21;a3=a31;
+b1=b11;b2=b21;b3=b31;
+c1=c11;c2=c21;c3=c31;
+d1=d11;d2=d21;d3=d31; 
+sp_1 = ((a1*100)+(a2*10)+(a3*1));
+kp=(float) ((b1*10)+(b2*1)+(b3*0.1));
+ki=(float) ((c1*1)+(c2*0.1)+(c3*0.01));
+kd= ((d1*100)+(d2*10)+(d3*1));
+output =(float)((kp*err)+(ki*integral)+(kd*derivative));
+} while(pross!=1);
+}
+void stop(void)
+{ pross=0;output=0;
+}
+void cursor_on()
+{
+_lcd_write_data(0xf);
+}
+void cursor_off()
+{
+_lcd_write_data(0xC);
+}
+void main() {
+PORTA=0x00;
+DDRA=0x00;
+PORTB=0x0F;
+DDRB=0xF0;
+PORTC=0x00; DDRC=0x00;
+PORTD=0xFF;
+DDRD=0xF0;
+/// LCD module initialization
+lcd_init(16);
+lcd_gotoxy(0,0);
+lcd_putsf(" ==PID EEPROM==");
+delay_ms(500);
+lcd_gotoxy(0,1);
+lcd_putsf(" KONTROL CERDAS");
+delay_ms(500);
+lcd_gotoxy(0,2);
+lcd_putsf(" ==STTW==");
+delay_ms(1000);
+stop();
+lcd_clear();
+dtkey=0x0A;
+#asm ("cli")
+while (1)
+{ 
+detek_key();
+switch (arah)
+{
+case 10: 
+{sp=1;set_sp();};
+break;
+case 11: stop();
+break;
+case 12: geser();
+break;
+case 13: geser1();
+break;
+case 14: enter();
+break;
+case 15: {sp=0;edit=0;pross=1;proses();};
+break;
+};
+
+lcd_gotoxy(0,0);
+sprintf(buf,"SP=%d%d%d Out=%3d",a11,a21,a31,output); 
+lcd_puts(buf);
+lcd_gotoxy(0,1);
+sprintf(buf,"KP=%d%d.%d ",b11,b21,b31); 
+lcd_puts(buf);
+lcd_gotoxy(0,2);
+sprintf(buf,"KI=%d.%d%d ",c11,c21,c31); 
+lcd_puts(buf);
+lcd_gotoxy(0,3);
+sprintf(buf,"KD=%d%d%d ",d11,d21,d31); 
+lcd_puts(buf); 
+};}
+//fungsi scan keypad..............................................
+void detek_key(void) {
+PORTB.4=0;
+dt=(~PINB & 0x0F);
+switch (dt) {
+case 1: dtkey=0x01;break; 
+case 2: dtkey=0x02;break;
+case 4: dtkey=0x03;break;
+case 8: arah=10
+; break; 
+/
+/Edit… akses set_point
+};
+PORTB.4=1; PORTB.5=0;
+dt=(~PINB & 0x0F);
+switch (dt) {
+case 1: dtkey=0x04;break; 
+case 2: dtkey=0x05;break;
+case 4: dtkey=0x06;break;
+case 8: arah=11; break; //
+STOP… tombol stop
+};
+PORTB.5=1; PORTB.6=0;
+dt=(~PINB & 0x0F);
+switch (dt) {
+case 1: dtkey=0x07;break; 
+case 2: dtkey=0x08;break;
+case 4: dtkey=0x09;break;
+case 8: arah=12; break; 
+/
+/>… cursor geser kebawah
+};
+PORTB.6=1; PORTB.7=0;
+dt=(~PINB & 0x0F);
+switch (dt) {
+case 1: arah=15; break; //RUN untuk proses 
+case 2: dtkey=0x00;break;
+case 4: arah=14; break; //= … masukan nilai set_point
+case 8: arah=13; break; //< …cursor geser keatas
+};
+PORTB.7=1;
+};
