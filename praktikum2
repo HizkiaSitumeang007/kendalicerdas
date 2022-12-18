@@ -239,10 +239,7 @@ switch (dt)
 case 1: dtkey=0x01;break; 
 case 2: dtkey=0x02;break;
 case 4: dtkey=0x03;break;
-case 8: arah=10
-; break; 
-/
-/Edit… akses set_point
+case 8: arah=10; break; //Edit… akses set_point
 };
 PORTB.4=1; PORTB.5=0;
 dt=(~PINB & 0x0F);
@@ -258,9 +255,7 @@ switch (dt) {
 case 1: dtkey=0x07;break; 
 case 2: dtkey=0x08;break;
 case 4: dtkey=0x09;break;
-case 8: arah=12; break; 
-/
-/>… cursor geser kebawah
+case 8: arah=12; break; //>… cursor geser kebawah
 };
 PORTB.6=1; PORTB.7=0;
 dt=(~PINB & 0x0F);
@@ -268,7 +263,6 @@ switch (dt) {
 case 1: arah=15; break; //RUN untuk proses 
 case 2: dtkey=0x00;break;
 case 4: arah=14; break; //= … masukan nilai set_point
-case 8: arah=13; break; //
-< …cursor geser keatas
+case 8: arah=13; break; //< …cursor geser keatas
 };
 PORTB.7=1; };
