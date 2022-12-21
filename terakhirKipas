@@ -1,34 +1,44 @@
+// UDAH JADI, TAPI rpm gak jalan
+
 /*****************************************************
 This program was produced by the
-CodeWizardAVR V2.05.0 Professional
+CodeWizardAVR V2.05.3 Standard
 Automatic Program Generator
-© Copyright 1998-2010 Pavel Haiduc, HP InfoTech s.r.l.
+© Copyright 1998-2011 Pavel Haiduc, HP InfoTech s.r.l.
 http://www.hpinfotech.com
-Project : KENDALI MOTOR KIPAS DAN SPRAY AIR
+
+Project : 
 Version : 
-Date : 03/11/2021
-Author : 
-Company : Sekolah Tinggi Teknologi Warga Surakarta
+Date    : 12/20/2022
+Author  : pc
+Company : Kendali
 Comments: 
-Chip type : ATmega16
-Program type : Application
-AVR Core Clock frequency: 4,000000 MHz
-Memory model : Small
-External RAM size : 0
-Data Stack size : 256
+
+
+Chip type               : ATmega16
+Program type            : Application
+AVR Core Clock frequency: 4.000000 MHz
+Memory model            : Small
+External RAM size       : 0
+Data Stack size         : 256
 *****************************************************/
+
 #include <mega16.h>
+#include <alcd.h>
 #include <delay.h>
 #include <stdio.h>
 #include <stdlib.h>
-
 #include <math.h>
-// Alphanumeric LCD Module functions
-#include <alcd.h>
+
+// Alphanumeric LCD functions
+
+
 #define ADC_VREF_TYPE 0xE0
+
 // Read the 8 most significant bits
 // of the AD conversion result
-unsigned char read_adc(unsigned char adc_input) {
+unsigned char read_adc(unsigned char adc_input)
+{
 ADMUX=adc_input | (ADC_VREF_TYPE & 0xff);
 // Delay needed for the stabilization of the ADC input voltage
 delay_us(10);
@@ -37,8 +47,9 @@ ADCSRA|=0x40;
 // Wait for the AD conversion to complete
 while ((ADCSRA & 0x10)==0);
 ADCSRA|=0x10;
-return ADCH; }
-// Declare your global variables here
+return ADCH;
+}
+
 char dt,dtkey,arah;
 static char a,c;
 unsigned char a1,a2,a3,vin,vin2,output,output1;
@@ -73,6 +84,7 @@ float HGT(int crips) {
  if((suhu[3]<crips)&&(crips<=suhu[5]))return (1
 -(m/jarak));
 }
+
 float PNS(int crips)
 {
  float m = abs(suhu[7]-crips);
@@ -122,7 +134,7 @@ void set_sp()
  cursor_on();
  delay_ms(100);
  cursor_off();
- 
+
  if((dtkey<=0x09)&&(sp=1))
  { a1=a2; delay_ms(70); a2=a3; delay_ms(70); a3=dtkey; dtkey=0x0A; }
 }
@@ -139,7 +151,7 @@ void out_set()
 void cursor_on()
 {
 _lcd_write_data(0x0f);
-} 
+}
 void cursor_off()
 {
 _lcd_write_data(0xC);
@@ -154,7 +166,7 @@ void proses()
  Brange1=Brange2=Brange3=Brange4=0;
  baca=vin;
  baca2=vin2;
- 
+
  //===============SUHU========================/
  if((baca<=suhu[1])||((suhu[1]<=baca)&&(baca<=suhu[2])))DGN(baca);
  if((suhu[3]<baca)&&(baca<=suhu[5]))HGT(baca);
@@ -165,14 +177,14 @@ void proses()
  if((cahaya[3]<baca2)&&(baca2<=cahaya[5]))G(baca2);
  if((cahaya[6]<baca2)&&(baca2<=cahaya[8]))T(baca2);
  if((baca2>=cahaya[11])||((cahaya[9]<baca2)&&(baca2<=cahaya[10])))ST(baca2);
- 
- 
- //ANTICEDENT DAN KONSEKUEN===== 
+
+
+ //ANTICEDENT DAN KONSEKUEN=====
  if((range1)&&(Brange1))A[0]=fmin(DGN(baca),SG(baca2));else A[0]=0;
  if((range1)&&(Brange2))A[1]=fmin(DGN(baca),G(baca2));else A[1]=0;
  if((range1)&&(Brange3))A[2]=fmin(DGN(baca),T(baca2));else A[2]=0;
  if((range1)&&(Brange4))A[3]=fmin(DGN(baca),ST(baca2));else A[3]=0;
- 
+
  if((range2)&&(Brange1))A[4]=fmin(HGT(baca),SG(baca2));else A[4]=0;
  if((range2)&&(Brange2))A[5]=fmin(HGT(baca),G(baca2));else A[5]=0;
  if((range2)&&(Brange3))A[6]=fmin(HGT(baca),T(baca2));else A[6]=0;
@@ -181,9 +193,8 @@ void proses()
  if((range3)&&(Brange2))A[9]=fmin(PNS(baca),G(baca2));else A[9]=0;
  if((range3)&&(Brange3))A[10]=fmin(PNS(baca),T(baca2));else A[10]=0;
  if((range3)&&(Brange4))A[11]=fmin(PNS(baca),ST(baca2));else A[11]=0;
-
-
-if((range4)&&(Brange1))A[12]=fmin(SPNS(baca),SG(baca2));else A[12]=0;
+ 
+ if((range4)&&(Brange1))A[12]=fmin(SPNS(baca),SG(baca2));else A[12]=0;
  if((range4)&&(Brange2))A[13]=fmin(SPNS(baca),G(baca2));else A[13]=0;
  if((range4)&&(Brange3))A[14]=fmin(SPNS(baca),T(baca2));else A[14]=0;
  if((range4)&&(Brange4))A[15]=fmin(SPNS(baca),ST(baca2));else A[15]=0;
@@ -191,21 +202,22 @@ if((range4)&&(Brange1))A[12]=fmin(SPNS(baca),SG(baca2));else A[12]=0;
  (A[4]*C[0])+(A[5]*C[0])+(A[6]*C[1])+(A[7]*C[2])+
  (A[8]*C[1])+(A[9]*C[1])+(A[10]*C[2])+(A[11]*C[2])+
  (A[12]*C[1])+(A[13]*C[2])+(A[14]*C[3])+(A[15]*C[3]));
- 
+
  penyebut= (A[0]+A[1]+A[2]+A[3]+A[4]+A[5]+A[6]+A[7]+
  A[8]+A[9]+A[10]+A[11]+A[12]+A[13]+A[14]+A[15]);
- 
- output=(pembilang/penyebut); 
- 
-//================================================================================ 
+
+ output=(pembilang/penyebut);
+
+//============================================
+
  pembilang1=((A[0]*C1[0])+(A[1]*C1[0])+(A[2]*C1[1])+(A[3]*C1[1])+
  (A[4]*C1[0])+(A[5]*C1[0])+(A[6]*C1[1])+(A[7]*C1[2])+
  (A[8]*C1[1])+(A[9]*C1[1])+(A[10]*C1[2])+(A[11]*C1[2])+
  (A[12]*C1[1])+(A[13]*C1[2])+(A[14]*C1[3])+(A[15]*C1[3]));
- 
+
  penyebut1= (A[0]+A[1]+A[2]+A[3]+A[4]+A[5]+A[6]+A[7]+
  A[8]+A[9]+A[10]+A[11]+A[12]+A[13]+A[14]+A[15]);
- 
+
  output1=(pembilang1/penyebut1);
 }while(pross!=1);
 }
@@ -238,8 +250,8 @@ if((range4)&&(Brange1))A[12]=fmin(SPNS(baca),SG(baca2));else A[12]=0;
  case 2: dtkey=0x08;break;
  case 4: dtkey=0x09;break;
  case 8: arah=12; break; //>...cursor geser ke bawah
-
-}; 
+ 
+ };
  PORTB.6=1; PORTB.7=0;
  dt=(~PINB & 0x0f);
  switch(dt)
@@ -250,32 +262,40 @@ if((range4)&&(Brange1))A[12]=fmin(SPNS(baca),SG(baca2));else A[12]=0;
  case 8: arah=13; break; //<...cursor geser ke atas
  };
  PORTB.7=1;
- }; 
+ };
  
+
+// Declare your global variables here
+
 void main(void)
 {
 // Declare your local variables here
+
 // Input/Output Ports initialization
 // Port A initialization
 // Func7=In Func6=In Func5=In Func4=In Func3=In Func2=In Func1=In Func0=In 
 // State7=T State6=T State5=T State4=T State3=T State2=T State1=T State0=T 
 PORTA=0x00;
 DDRA=0x00;
+
 // Port B initialization
 // Func7=Out Func6=Out Func5=Out Func4=Out Func3=In Func2=In Func1=In Func0=In 
 // State7=0 State6=0 State5=0 State4=0 State3=P State2=P State1=P State0=P 
 PORTB=0x0F;
 DDRB=0xF0;
+
 // Port C initialization
 // Func7=In Func6=In Func5=In Func4=In Func3=In Func2=In Func1=In Func0=In 
 // State7=T State6=T State5=T State4=T State3=T State2=T State1=T State0=T 
 PORTC=0x00;
 DDRC=0x00;
+
 // Port D initialization
 // Func7=Out Func6=Out Func5=Out Func4=Out Func3=Out Func2=Out Func1=Out Func0=Out 
 // State7=0 State6=0 State5=0 State4=0 State3=0 State2=0 State1=0 State0=0 
 PORTD=0x00;
 DDRD=0xFF;
+
 // Timer/Counter 0 initialization
 // Clock source: System Clock
 // Clock value: Timer 0 Stopped
@@ -284,15 +304,15 @@ DDRD=0xFF;
 TCCR0=0x00;
 TCNT0=0x00;
 OCR0=0x00;
+
 // Timer/Counter 1 initialization
 // Clock source: System Clock
-// Clock value: 62,500 kHz
+// Clock value: 62.500 kHz
 // Mode: Fast PWM top=0x00FF
 // OC1A output: Inverted
 // OC1B output: Non-Inv.
 // Noise Canceler: Off
 // Input Capture on Falling Edge
-
 // Timer1 Overflow Interrupt: Off
 // Input Capture Interrupt: Off
 // Compare A Match Interrupt: Off
@@ -307,49 +327,57 @@ OCR1AH=0x00;
 OCR1AL=0x00;
 OCR1BH=0x00;
 OCR1BL=0x00;
+
 // Timer/Counter 2 initialization
 // Clock source: System Clock
-// Clock value: 62,500 kHz
-// Mode: Fast PWM top=0xFF
-// OC2 output: Non
-//-Inverted PWM
+// Clock value: Timer2 Stopped
+// Mode: Normal top=0xFF
+// OC2 output: Disconnected
 ASSR=0x00;
-TCCR2=0x6C;
+TCCR2=0x00;
 TCNT2=0x00;
 OCR2=0x00;
+
 // External Interrupt(s) initialization
 // INT0: Off
 // INT1: Off
 // INT2: Off
 MCUCR=0x00;
 MCUCSR=0x00;
+
 // Timer(s)/Counter(s) Interrupt(s) initialization
 TIMSK=0x00;
+
 // USART initialization
 // USART disabled
 UCSRB=0x00;
+
 // Analog Comparator initialization
 // Analog Comparator: Off
 // Analog Comparator Input Capture by Timer/Counter 1: Off
 ACSR=0x80;
 SFIOR=0x00;
+
 // ADC initialization
-// ADC Clock frequency: 125,000 kHz
+// ADC Clock frequency: 125.000 kHz
 // ADC Voltage Reference: Int., cap. on AREF
 // ADC Auto Trigger Source: Free Running
 // Only the 8 most significant bits of
 // the AD conversion result are used
 ADMUX=ADC_VREF_TYPE & 0xff;
-ADCSRA=0x85;
+ADCSRA=0xA5;
 SFIOR&=0x1F;
+
 // SPI initialization
 // SPI disabled
 SPCR=0x00;
+
 // TWI initialization
 // TWI disabled
 TWCR=0x00;
+
 // Alphanumeric LCD initialization
-// Connections specified in the
+// Connections are specified in the
 // Project|Configure|C Compiler|Libraries|Alphanumeric LCD menu:
 // RS - PORTC Bit 0
 // RD - PORTC Bit 1
@@ -361,22 +389,22 @@ TWCR=0x00;
 // Characters/line: 20
 lcd_init(20);
 lcd_gotoxy(0,0);
-lcd_puts("KENDALI MOTOR & AIR");
-delay_ms(500); 
-lcd_gotoxy(0,1);
-lcd_puts("TEKNIK ELEKTRONIKA");
-delay_ms(500); 
-lcd_gotoxy(0,2);
-lcd_puts(" ==STTW==");
+lcd_puts("Kendali Motor & Air");
 delay_ms(500);
-lcd_gotoxy(0,3);
-lcd_puts(" KENDALI CERDAS");
-delay_ms(1000); 
+lcd_gotoxy(5,1);
+lcd_puts("==STTW==");
+delay_ms(500);
+lcd_gotoxy(1,2);
+lcd_puts("Hizkia Situmeang");
+delay_ms(500);
+lcd_gotoxy(6,3);
+lcd_puts("202020");
+delay_ms(1000);
 lcd_clear();
 #asm("cli");
 while (1)
- {
- // Place your code here
+      {
+      // Place your code here
  vin=read_adc(0);
  delay_ms(20);
  vin2=read_adc(1);
@@ -388,29 +416,27 @@ while (1)
  case 10: set_sp();a=4;c=0;output=0;output1=0;
  break;
  case 11: out_set();pross=0;a=0;c=0;baca=0;sp=0;output=0;output1=0;
- break; 
- case 12: 
  break;
- case 13: 
+ case 12:
  break;
- case 14: 
+ case 13:
+ break;
+ case 14:
  break;
  case 15:proses();
  break;
  }
- 
+
  lcd_gotoxy(0,0);
  sprintf(buf,"LM35 = %3d \xdfC",read_adc(0));
  lcd_puts(buf);
  lcd_gotoxy(0,1);
-
-sprintf(buf,"LDR = %3d LUX",read_adc(1));
+ 
+ sprintf(buf,"LDR  = %3d LUX",read_adc(1));
  lcd_puts(buf);
  lcd_gotoxy(0,2);
  sprintf(buf,"RPM Motor = %3d",output);
- lcd_puts(buf); 
- lcd_gotoxy(0,3);
- sprintf(buf,"SPRAY Air = %3d",output1);
  lcd_puts(buf);
  }
 }
+
